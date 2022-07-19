@@ -490,7 +490,7 @@ func (h *Host) AddBroadcastPubSub(ctx context.Context, topic string, callback Ha
 	if err != nil {
 		return err
 	}
-	sub, err := top.Subscribe()
+	sub, err := top.Subscribe(pubsub.WithBufferSize(5000))
 	if err != nil {
 		return err
 	}
