@@ -18,9 +18,13 @@ import (
 
 func TestBroadcast(t *testing.T) {
 	runP2P := func(t *testing.T, options ...Option) {
-		ctx := context.Background()
-		n := 10
-		hosts := make([]*Host, n)
+		var (
+			ctx                  = context.Background()
+			n                    = 10
+			hosts                = make([]*Host, n)
+			count          int32 = 0
+			broadcastCount int32 = 0
+		)
 		for i := 0; i < n; i++ {
 			opts := []Option{
 				Port(30000 + i),
@@ -33,6 +37,7 @@ func TestBroadcast(t *testing.T) {
 			require.NoError(t, host.AddBroadcastPubSub(ctx, "test", func(ctx context.Context, data []byte) error {
 				fmt.Print(string(data))
 				fmt.Printf(", received by %s\n", host.HostIdentity())
+				atomic.AddInt32(&count, 1)
 				return nil
 			}))
 			hosts[i] = host
@@ -52,8 +57,13 @@ func TestBroadcast(t *testing.T) {
 				t,
 				hosts[i].Broadcast(ctx, "test", []byte(fmt.Sprintf("msg sent from %s", hosts[i].HostIdentity()))),
 			)
+			broadcastCount++
 		}
 
+		err := waitUntil(100*time.Millisecond, 3*time.Second, func() bool {
+			return atomic.LoadInt32(&count) >= broadcastCount*(broadcastCount-1)
+		})
+		require.NoError(t, err)
 		time.Sleep(100 * time.Millisecond)
 		for i := 0; i < n; i++ {
 			require.NoError(t, hosts[i].Close())
