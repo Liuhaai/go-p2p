@@ -485,7 +485,8 @@ func (h *Host) AddBroadcastPubSub(ctx context.Context, topic string, callback Ha
 		h.ctx,
 		h.host,
 		// pubsub.WithBlacklist(blacklist),
-		pubsub.WithPeerOutboundQueueSize(10000),
+		pubsub.WithPeerOutboundQueueSize(30000),
+		pubsub.WithValidateQueueSize(30000),
 	)
 	if err != nil {
 		return err
