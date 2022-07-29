@@ -417,12 +417,8 @@ func (h *Host) Advertise() error {
 }
 
 // FindPeers connect host to the peers with the same groupID
-func (h *Host) FindPeers(ctx context.Context) error {
-	if err := h.peerManager.ConnectPeers(ctx); err != nil {
-		Logger().Error("error when finding peers", zap.Error(err))
-		return err
-	}
-	return nil
+func (h *Host) FindPeers() {
+	h.peerManager.ConnectPeers()
 }
 
 // AddUnicastPubSub adds a unicast topic that the host will pay attention to

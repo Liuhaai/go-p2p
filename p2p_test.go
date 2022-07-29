@@ -44,7 +44,8 @@ func TestBroadcast(t *testing.T) {
 				require.NoError(t, hosts[i].Connect(ctx, bootstrapInfo))
 			}
 			hosts[i].JoinOverlay()
-			hosts[i].Advertise()
+			err := hosts[i].Advertise()
+			require.NoError(t, err)
 		}
 
 		for i := 0; i < n; i++ {
@@ -95,7 +96,8 @@ func TestUnicast(t *testing.T) {
 			require.NoError(t, hosts[i].Connect(ctx, bootstrapInfo))
 		}
 		hosts[i].JoinOverlay()
-		hosts[i].Advertise()
+		err := hosts[i].Advertise()
+		require.NoError(t, err)
 	}
 
 	for i, host := range hosts {
@@ -156,8 +158,18 @@ func TestPeerManager(t *testing.T) {
 	for _, host := range hosts {
 		host.JoinOverlay()
 		require.NoError(host.Advertise())
-		require.NoError(host.FindPeers(ctx))
+		host.FindPeers()
 	}
+
+	err = waitUntil(100*time.Millisecond, 3*time.Second, func() bool {
+		for _, host := range hosts {
+			if len(hosts) != len(host.ConnectedPeers()) {
+				return false
+			}
+		}
+		return true
+	})
+	require.NoError(err)
 
 	for _, host := range hosts {
 		for _, peer := range host.ConnectedPeers() {
@@ -212,18 +224,24 @@ func TestAddBootNode(t *testing.T) {
 
 	for _, host := range hosts {
 		host.JoinOverlay()
-		host.Advertise()
-		err := host.FindPeers(ctx)
+		err := host.Advertise()
 		require.NoError(err)
+		host.FindPeers()
 
 		bAddr, err := peer.AddrInfoToP2pAddrs(&bootstrapInfo)
 		require.NoError(err)
 		require.NoError(host.AddBootstrap(bAddr))
 	}
 
-	for _, host := range hosts {
-		require.Equal(n-2, len(host.ConnectedPeers()))
-	}
+	err = waitUntil(100*time.Millisecond, 3*time.Second, func() bool {
+		for _, host := range hosts {
+			if n-2 != len(host.ConnectedPeers()) {
+				return false
+			}
+		}
+		return true
+	})
+	require.NoError(err)
 
 	for i := range hosts {
 		require.NoError(hosts[i].Close())
